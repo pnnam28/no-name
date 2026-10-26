@@ -8,18 +8,18 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
 import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { bottom_tab_inset, max_content_width, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
+  const safe_area_insets = useSafeAreaInsets();
   const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+    ...safe_area_insets,
+    bottom: safe_area_insets.bottom + bottom_tab_inset + spacing.three,
   };
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
+  const content_platform_style = Platform.select({
     android: {
       paddingTop: insets.top,
       paddingLeft: insets.left,
@@ -27,26 +27,26 @@ export default function TabTwoScreen() {
       paddingBottom: insets.bottom,
     },
     web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
+      paddingTop: spacing.six,
+      paddingBottom: spacing.four,
     },
   });
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
+      style={[styles.scroll_view, { backgroundColor: theme.background }]}
       contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
+      contentContainerStyle={[styles.content_container, content_platform_style]}>
       <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
+        <ThemedView style={styles.title_container}>
           <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
+          <ThemedText style={styles.center_text} theme_color="text_secondary">
             This starter app includes example{'\n'}code to help you get started.
           </ThemedText>
 
           <ExternalLink href="https://docs.expo.dev" asChild>
             <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
+              <ThemedView type="background_element" style={styles.link_button}>
                 <ThemedText type="link">Expo documentation</ThemedText>
                 <SymbolView
                   tintColor={theme.text}
@@ -58,7 +58,7 @@ export default function TabTwoScreen() {
           </ExternalLink>
         </ThemedView>
 
-        <ThemedView style={styles.sectionsWrapper}>
+        <ThemedView style={styles.sections_wrapper}>
           <Collapsible title="File-based routing">
             <ThemedText type="small">
               This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
@@ -69,20 +69,20 @@ export default function TabTwoScreen() {
               the tab navigator.
             </ThemedText>
             <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+              <ThemedText type="link_primary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>
 
           <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
+            <ThemedView type="background_element" style={styles.collapsible_content}>
               <ThemedText type="small">
                 You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
+                press <ThemedText type="small_bold">w</ThemedText> in the terminal running this
                 project.
               </ThemedText>
               <Image
                 source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
+                style={styles.image_tutorial}
               />
             </ThemedView>
           </Collapsible>
@@ -93,9 +93,9 @@ export default function TabTwoScreen() {
               <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
               screen densities.
             </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
+            <Image source={require('@/assets/images/react-logo.png')} style={styles.image_react} />
             <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+              <ThemedText type="link_primary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>
 
@@ -106,7 +106,7 @@ export default function TabTwoScreen() {
               user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
             </ThemedText>
             <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+              <ThemedText type="link_primary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>
 
@@ -126,53 +126,53 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  scroll_view: {
     flex: 1,
   },
-  contentContainer: {
+  content_container: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   container: {
-    maxWidth: MaxContentWidth,
+    maxWidth: max_content_width,
     flexGrow: 1,
   },
-  titleContainer: {
-    gap: Spacing.three,
+  title_container: {
+    gap: spacing.three,
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    paddingHorizontal: spacing.four,
+    paddingVertical: spacing.six,
   },
-  centerText: {
+  center_text: {
     textAlign: 'center',
   },
   pressed: {
     opacity: 0.7,
   },
-  linkButton: {
+  link_button: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
+    paddingHorizontal: spacing.four,
+    paddingVertical: spacing.two,
+    borderRadius: spacing.five,
     justifyContent: 'center',
-    gap: Spacing.one,
+    gap: spacing.one,
     alignItems: 'center',
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+  sections_wrapper: {
+    gap: spacing.five,
+    paddingHorizontal: spacing.four,
+    paddingTop: spacing.three,
   },
-  collapsibleContent: {
+  collapsible_content: {
     alignItems: 'center',
   },
-  imageTutorial: {
+  image_tutorial: {
     width: '100%',
     aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
+    borderRadius: spacing.three,
+    marginTop: spacing.two,
   },
-  imageReact: {
+  image_react: {
     width: 100,
     height: 100,
     alignSelf: 'center',

@@ -7,26 +7,26 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
+export const colors = {
   light: {
     text: '#000000',
     background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    background_element: '#F0F0F3',
+    background_selected: '#E0E1E6',
+    text_secondary: '#60646C',
   },
   dark: {
     text: '#ffffff',
     background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background_element: '#212225',
+    background_selected: '#2E3135',
+    text_secondary: '#B0B4BA',
   },
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemeColor = keyof typeof colors.light & keyof typeof colors.dark;
 
-export const Fonts = Platform.select({
+export const fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
@@ -51,7 +51,7 @@ export const Fonts = Platform.select({
   },
 });
 
-export const Spacing = {
+export const spacing = {
   half: 2,
   one: 4,
   two: 8,
@@ -61,5 +61,5 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const bottom_tab_inset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const max_content_width = 800;

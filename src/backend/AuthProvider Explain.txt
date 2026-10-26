@@ -1,0 +1,383 @@
+**`AuthProvider.tsx` khôi phục phiên đăng nhập lúc mở app, hiển thị loading hoặc lỗi trong lúc khôi phục, 
+và cung cấp hook để giao diện theo dõi trạng thái đăng nhập.** Dưới đây là giải thích theo phiên bản code mình đã đề xuất trong chat.
+
+### 1. Import các công cụ của React
+
+```tsx
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+```
+
+- `useEffect`: chạy tác vụ khôi phục phiên sau khi component xuất hiện.
+- `useState`: giữ trạng thái riêng của component, ví dụ có lỗi đọc bộ nhớ hay không.
+- `useSyncExternalStore`: kết nối React với trạng thái nằm trong `auth.store`.
+
+```tsx
+import type { PropsWithChildren } from 'react';
+```
+
+`PropsWithChildren` mô tả rằng component có thể nhận nội dung bên trong, gọi là `children`.
+
+Ví dụ:
+
+```tsx
+<AuthProvider>
+  <Stack />
+</AuthProvider>
+```
+
+Ở đây, `<Stack />` chính là `children`.
+
+### 2. Import các thành phần giao diện
+
+```tsx
+import {
+  ActivityIndicator,
+  Button,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+```
+
+| Thành phần | Công dụng |
+|---|---|
+| `ActivityIndicator` | Vòng xoay loading |
+| `Button` | Nút thử lại |
+| `StyleSheet` | Khai báo kiểu giao diện |
+| `Text` | Hiển thị chữ |
+| `View` | Khung chứa các thành phần |
+
+```tsx
+import { useTheme } from '@/hooks/use-theme';
+```
+
+Lấy màu phù hợp với chế độ sáng hoặc tối của app.
+
+### 3. Import phần cấu hình và quản lý phiên
+
+```tsx
+import { configureApi } from './api/client';
+import { backend_url } from './config';
+```
+
+- `configureApi`: hàm thiết lập địa chỉ server cho HTTP client.
+- `backend_url`: địa chỉ server đã cấu hình.
+
+```tsx
+import {
+  getAuthState,
+  restoreAuthSession,
+  subscribeAuth,
+} from './auth.store';
+```
+
+- `getAuthState()`: đọc trạng thái phiên hiện tại.
+- `restoreAuthSession()`: đọc phiên đã lưu và đưa nó vào store.
+- `subscribeAuth()`: đăng ký listener để biết khi nào store thay đổi.
+
+```tsx
+configureApi(backend_url);
+```
+
+Thiết lập địa chỉ backend cho các request.
+
+Dòng này chạy khi module được nạp; **nó không gửi request hoặc kiểm tra server có đang hoạt động không**.
+
+### 4. Tạo hook đọc trạng thái đăng nhập
+
+```tsx
+export function useAuthSession() {
+```
+
+Khai báo và export một custom hook để các component khác sử dụng.
+
+```tsx
+  return useSyncExternalStore(
+    subscribeAuth,
+    getAuthState,
+    getAuthState,
+  );
+}
+```
+
+Ba tham số có nhiệm vụ:
+
+| Tham số | Nhiệm vụ |
+|---|---|
+| `subscribeAuth` | Đăng ký nhận thông báo khi store thay đổi |
+| `getAuthState` thứ nhất | Đọc trạng thái khi chạy trên thiết bị hoặc browser |
+| `getAuthState` thứ hai | Đọc trạng thái khi render phía server — SSR |
+
+Hai tham số cuối dùng chung hàm vì cùng lấy dữ liệu từ store. SSR ở đây là render giao diện phía server, không phải server API đăng nhập.
+
+Một màn hình có thể dùng:
+
+```tsx
+const session = useAuthSession();
+```
+
+Khi store thay đổi, React sẽ đọc trạng thái mới và render lại màn hình đó.
+
+### 5. Khai báo component `AuthProvider`
+
+```tsx
+export function AuthProvider({
+  children,
+}: PropsWithChildren) {
+```
+
+Component nhận các màn hình được bọc bên trong qua biến `children`.
+
+```tsx
+  const theme = useTheme();
+```
+
+Lấy bộ màu hiện tại để hiển thị loading và thông báo lỗi.
+
+```tsx
+  const session = useAuthSession();
+```
+
+Đọc trạng thái phiên và đăng ký theo dõi thay đổi của store.
+
+```tsx
+  const [storage_error, setStorageError] = useState(false);
+```
+
+Tạo trạng thái lỗi đọc bộ nhớ:
+
+- `storage_error`: giá trị hiện tại.
+- `setStorageError(...)`: hàm thay đổi giá trị.
+- `false`: ban đầu chưa có lỗi.
+
+```tsx
+  const [attempt, setAttempt] = useState(0);
+```
+
+Tạo một số dùng để kích hoạt việc thử lại. Mỗi lần tăng `attempt`, effect phía dưới sẽ chạy lại.
+
+### 6. Bắt đầu khôi phục phiên
+
+```tsx
+  useEffect(() => {
+```
+
+Đăng ký tác vụ chạy sau khi component được render.
+
+```tsx
+    let active = true;
+```
+
+Đánh dấu rằng effect này vẫn còn hoạt động. Biến này giúp tránh cập nhật trạng thái sau khi component đã bị gỡ bỏ.
+
+```tsx
+    void restoreAuthSession().catch(() => {
+```
+
+Gọi hàm khôi phục phiên.
+
+- Hàm trả về Promise.
+- `.catch()` xử lý trường hợp khôi phục thất bại.
+- `void` cho biết đoạn code không sử dụng giá trị trả về của Promise; nó không hủy tác vụ.
+
+```tsx
+      if (active) {
+        setStorageError(true);
+      }
+```
+
+Nếu effect vẫn hoạt động, ghi nhận lỗi để giao diện hiện thông báo.
+
+```tsx
+    });
+```
+
+Kết thúc phần xử lý lỗi.
+
+```tsx
+    return () => {
+      active = false;
+    };
+```
+
+Đây là **hàm cleanup**. React gọi nó khi component bị gỡ hoặc trước khi effect chạy lại.
+
+Nó chỉ ngăn callback cũ cập nhật giao diện; không hủy thao tác đọc SecureStore đang chạy.
+
+```tsx
+  }, [attempt]);
+```
+
+Effect chạy:
+
+- Sau lần render đầu tiên.
+- Khi `attempt` thay đổi.
+
+Việc có thực sự đọc lại storage hay không còn phụ thuộc `restoreAuthSession()`, vì hàm đó dùng lại Promise cũ khi đã khôi phục thành công.
+
+### 7. Quyết định có cần hiển thị loading hoặc lỗi không
+
+```tsx
+  if (
+    storage_error ||
+    session.status === 'initializing'
+  ) {
+```
+
+Nếu có lỗi, **hoặc** phiên vẫn đang khởi tạo, component hiển thị màn hình chờ thay vì các màn hình của app.
+
+```tsx
+    return (
+      <View
+        style={[
+          styles.loading,
+          { backgroundColor: theme.background },
+        ]}
+      >
+```
+
+Tạo khung chứa giao diện chờ.
+
+Mảng `style` kết hợp:
+
+- `styles.loading`: bố cục.
+- `backgroundColor`: màu nền theo theme.
+
+### 8. Nếu có lỗi, hiển thị nút Retry
+
+```tsx
+        {storage_error ? (
+```
+
+Đây là toán tử điều kiện: nếu `storage_error` là `true`, hiển thị phần đầu; nếu không, hiển thị phần sau dấu `:`.
+
+```tsx
+          <>
+```
+
+`<>...</>` là **Fragment**: nhóm nhiều thành phần mà không tạo thêm một `View`.
+
+```tsx
+            <Text style={{ color: theme.text }}>
+              Unable to read your saved session.
+              Unlock your device and retry.
+            </Text>
+```
+
+Hiển thị thông báo không đọc được phiên đã lưu.
+
+```tsx
+            <Button
+              title="Retry"
+```
+
+Tạo nút có nhãn “Retry”.
+
+```tsx
+              onPress={() => {
+                setStorageError(false);
+                setAttempt((value) => value + 1);
+              }}
+            />
+```
+
+Khi bấm:
+
+1. Xóa trạng thái lỗi để giao diện trở lại loading.
+2. Tăng `attempt`.
+3. Effect chạy lại và gọi `restoreAuthSession()`.
+
+```tsx
+          </>
+```
+
+Kết thúc nhóm giao diện lỗi.
+
+### 9. Nếu đang khôi phục, hiển thị loading
+
+```tsx
+        ) : (
+          <>
+            <ActivityIndicator color={theme.text} />
+```
+
+Hiển thị vòng xoay.
+
+```tsx
+            <Text style={{ color: theme.text }}>
+              Restoring session…
+            </Text>
+          </>
+        )}
+```
+
+Hiển thị dòng chữ đang khôi phục phiên, rồi kết thúc điều kiện.
+
+```tsx
+      </View>
+    );
+  }
+```
+
+Kết thúc màn hình loading/lỗi và câu lệnh `if`.
+
+### 10. Hiển thị app khi khôi phục xong
+
+```tsx
+  return children;
+}
+```
+
+Khi không có lỗi và trạng thái không còn `initializing`, hiển thị nội dung được bọc bên trong.
+
+Nếu bạn dùng:
+
+```tsx
+<AuthProvider>
+  <Stack />
+</AuthProvider>
+```
+
+thì dòng `return children` cho phép `<Stack />` xuất hiện.
+
+**Nó không tự chuyển đến màn hình đăng nhập hay tài khoản.** Màn hình bên trong đọc `session` rồi quyết định hiển thị gì.
+
+### 11. Khai báo giao diện loading
+
+```tsx
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
+});
+```
+
+| Dòng | Ý nghĩa |
+|---|---|
+| `flex: 1` | Chiếm phần không gian còn lại |
+| `alignItems: 'center'` | Căn giữa các thành phần theo chiều ngang |
+| `justifyContent: 'center'` | Căn giữa theo chiều dọc |
+| `padding: 24` | Tạo khoảng cách với mép khung |
+| `gap: 16` | Tạo khoảng cách giữa các thành phần |
+
+Luồng hoạt động của file là:
+
+```text
+AuthProvider xuất hiện
+    ↓
+Hiển thị loading
+    ↓
+Gọi restoreAuthSession()
+    ├── Thành công → hiển thị children
+    └── Thất bại → hiển thị lỗi và nút Retry
+```
+
+**Trong phiên bản này, `AuthProvider` không dùng React Context:** nó hoạt động như cổng khởi tạo và chứa hook kết nối với store. Token vẫn được lưu bởi helper SecureStore, trạng thái và listener nằm trong `auth.store`, còn backend chịu trách nhiệm xác nhận token có hợp lệ hay không.

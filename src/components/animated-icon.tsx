@@ -5,8 +5,8 @@ import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+const initial_scale_factor = Dimensions.get('screen').height / 90;
+const duration = 600;
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
@@ -14,7 +14,7 @@ export function AnimatedSplashOverlay() {
 
   if (!visible) return null;
 
-  const splashKeyframe = new Keyframe({
+  const splash_keyframe = new Keyframe({
     0: {
       transform: [{ scale: 1 }],
       opacity: 1,
@@ -37,13 +37,13 @@ export function AnimatedSplashOverlay() {
 
   return animate ? (
     <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
+      entering={splash_keyframe.duration(duration).withCallback((finished) => {
         'worklet';
         if (finished) {
           scheduleOnRN(setVisible, false);
         }
       })}
-      style={styles.splashOverlay}>
+      style={styles.splash_overlay}>
       {image}
     </Animated.View>
   ) : (
@@ -53,7 +53,7 @@ export function AnimatedSplashOverlay() {
           setAnimate(true);
         });
       }}
-      style={styles.splashOverlay}>
+      style={styles.splash_overlay}>
       {image}
     </View>
   );
@@ -61,7 +61,7 @@ export function AnimatedSplashOverlay() {
 
 const keyframe = new Keyframe({
   0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
+    transform: [{ scale: initial_scale_factor }],
   },
   100: {
     transform: [{ scale: 1 }],
@@ -69,7 +69,7 @@ const keyframe = new Keyframe({
   },
 });
 
-const logoKeyframe = new Keyframe({
+const logo_keyframe = new Keyframe({
   0: {
     transform: [{ scale: 1.3 }],
     opacity: 0,
@@ -86,7 +86,7 @@ const logoKeyframe = new Keyframe({
   },
 });
 
-const glowKeyframe = new Keyframe({
+const glow_keyframe = new Keyframe({
   0: {
     transform: [{ rotateZ: '0deg' }],
   },
@@ -97,13 +97,13 @@ const glowKeyframe = new Keyframe({
 
 export function AnimatedIcon() {
   return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
+    <View style={styles.icon_container}>
+      <Animated.View entering={glow_keyframe.duration(60 * 1000 * 4)} style={styles.glow}>
         <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
       </Animated.View>
 
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
+      <Animated.View entering={keyframe.duration(duration)} style={styles.background} />
+      <Animated.View style={styles.image_container} entering={logo_keyframe.duration(duration)}>
         <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
       </Animated.View>
     </View>
@@ -111,7 +111,7 @@ export function AnimatedIcon() {
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
+  image_container: {
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     height: 201,
     position: 'absolute',
   },
-  iconContainer: {
+  icon_container: {
     justifyContent: 'center',
     alignItems: 'center',
     width: 128,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     height: 128,
     position: 'absolute',
   },
-  splashOverlay: {
+  splash_overlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: '#208AEF',
     alignItems: 'center',

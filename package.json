@@ -12,6 +12,7 @@
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.13",
     "expo-router": "~57.0.28",
+    "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
@@ -37,7 +38,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "node --test tests/unit/*.test.mjs tests/integration/*.test.mjs tests/ui/*.test.mjs",
+    "test:storage": "node --test tests/unit/*.test.mjs",
+    "test:auth": "node --test tests/integration/*.test.mjs",
+    "test:ui": "node --test tests/ui/*.test.mjs"
   },
   "private": true
 }
