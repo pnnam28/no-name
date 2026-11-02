@@ -31,68 +31,163 @@ import {
     subscribeAuth,
 } from './auth.store';
 
+import { auth_api } from './api/auth';
+
+import {
+  ApiError,
+} from './api/client';
+
+import {
+  clearAuthSession,
+} from './auth.store';
+
+import {
+  TokenStorageError,
+} from './utils/token-storage';
+
+
 configureApi(backend_url);
 
 export function useAuthSession(){
     return useSyncExternalStore(subscribeAuth, getAuthState, getAuthState);
 }
 
-export function AuthProvider({children}: PropsWithChildren) {
-    const theme = useTheme();
+export function AuthProvider({
+  children,
+}: PropsWithChildren) {
+  const theme = useTheme();
+  const session = useAuthSession();
 
-    const session = useAuthSession();
-    
-    const [storage_error, setStorageError] = useState(false);
-    const [attempt, setAttempt] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [error_message, setErrorMessage] =
+    useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
-    useEffect(() => {
-        let active = true;
+  useEffect(() => {
+    let active = true;
 
-        void restoreAuthSession().catch(() => {
-            if(active){
-                setStorageError(true);
-            }
-        });
+    async function initialize() {
+      try {
+        await restoreAuthSession();
 
-        return () => { active = false; };
-    }, [attempt]);
-    
-    if ( storage_error || session.status === 'initializing' ){
-       
-        return (
-        <View
-            style={[
-            styles.loading,
-            { backgroundColor: theme.background },
-            ]}
-        >
-            {storage_error ? (
-            <>
-                <Text style={{ color: theme.text }}>
-                Unable to read your saved session.
-                Unlock your device and retry.
-                </Text>
+        if (
+          getAuthState().status === 'authenticated'
+        ) {
+          const result =
+            await auth_api.signInViaToken();
 
-                <Button
-                title="Retry"
-                onPress={() => {
-                    setStorageError(false);
-                    setAttempt((value) => value + 1);
-                }}
-                />
-            </>
-            ) : (
-            <>
-                <ActivityIndicator color={theme.text} />
+          if (
+            typeof result?.user_id !== 'string' ||
+            !result.user_id.trim()
+          ) {
+            throw new ApiError(
+              502,
+              'INVALID_VALIDATION_RESPONSE',
+            );
+          }
 
-                <Text style={{ color: theme.text }}>
-                Restoring session…
-                </Text>
-            </>
-            )}
-        </View>
-        );
+          const saved_user = getAuthState().user;
+
+          if (
+            saved_user &&
+            saved_user.id !== result.user_id
+          ) {
+            throw new ApiError(
+              502,
+              'SESSION_IDENTITY_MISMATCH',
+            );
+          }
+        }
+
+        if (active) {
+          setReady(true);
+        }
+      } catch (error) {
+        const message =
+          error instanceof TokenStorageError
+            ? 'Unable to read or save credentials. Unlock your device and retry.'
+            : error instanceof ApiError &&
+                (
+                  error.code === 'REFRESH_REJECTED' ||
+                  error.code === 'NO_REFRESH_TOKEN'
+                )
+              ? 'Your saved session cannot be renewed. Please sign in again.'
+              : 'Unable to verify the session. Check your connection and retry.';
+
+        if (active) {
+          setErrorMessage(message);
+        }
+      }
     }
+
+    void initialize();
+
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+
+  async function signInAgain() {
+    try {
+      await clearAuthSession();
+      setErrorMessage(null);
+      setReady(true);
+    } catch {
+      setErrorMessage(
+        'Unable to clear saved credentials. Unlock your device and retry.',
+      );
+    }
+  }
+
+  if (
+    !ready ||
+    session.status === 'initializing'
+  ) {
+    return (
+      <View
+        style={[
+          styles.loading,
+          { backgroundColor: theme.background },
+        ]}
+      >
+        {error_message ? (
+          <>
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{ color: theme.text }}
+            >
+              {error_message}
+            </Text>
+
+            <Button
+              title="Retry"
+              onPress={() => {
+                setErrorMessage(null);
+                setAttempt((value) => value + 1);
+              }}
+            />
+
+            <Button
+              title="Clear saved session and sign in"
+              onPress={() => {
+                void signInAgain();
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <ActivityIndicator color={theme.text} />
+
+            <Text style={{ color: theme.text }}>
+              {session.session_activity === 'refreshing'
+                ? 'Renewing session…'
+                : 'Checking session…'}
+            </Text>
+          </>
+        )}
+      </View>
+    );
+  }
 
   return children;
 }

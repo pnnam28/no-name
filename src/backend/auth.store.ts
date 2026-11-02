@@ -1,4 +1,4 @@
-import type { AuthState, SignInResponse } from './auth.types';
+import type { AuthState, SignInResponse, RefreshTokenResponse } from './auth.types';
 
 import {backend_url} from './config';
 
@@ -18,6 +18,7 @@ export function createInitialAuthState(): AuthState {
 // Memory only: do not write tokens to localStorage or logs.
 let state = createInitialAuthState();
 let refresh_token: string | null = null;
+
 
 const listeners = new Set<() => void>();
 
@@ -53,6 +54,7 @@ export function subscribeAuth(listener: () => void,): () => void {
 }
 
 export function storeSignInSession(session: SignInResponse,):Promise<void> {
+
   return enqueueAction(async () => {
     const next_refresh_token = session.refresh_token ?? null; //check coi la undefined, null hay la empty string
 
@@ -142,6 +144,51 @@ export function clearAuthSession(): Promise<void> {
       access_token: null,
       user: null,
     });
+  });
+}
+
+export function setSessionActivity(
+  refreshing: boolean,
+  message?: string,
+): void {
+  if (state.status !== 'authenticated') {
+    return;
+  }
+
+  publishState({
+    ...state,
+    session_activity: refreshing ? 'refreshing' : undefined,
+    session_message: message,
+  });
+}
+
+export function storeRefreshedTokens(
+  tokens: RefreshTokenResponse,
+  expected_refresh_token: string,
+): Promise<void> {
+  return enqueueAction(async () => {
+    // Do not apply a refresh response to a session that changed.
+    if (
+      state.status !== 'authenticated' ||
+      refresh_token !== expected_refresh_token
+    ) {
+      throw new Error('SESSION_CHANGED');
+    }
+
+    const next_state: AuthState = {
+      ...state,
+      access_token: tokens.access_token,
+    };
+
+    await saveTokens({
+      server_url: backend_url.replace(/\/+$/, ''),
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      user: state.user,
+    });
+
+    refresh_token = tokens.refresh_token;
+    publishState(next_state);
   });
 }
 

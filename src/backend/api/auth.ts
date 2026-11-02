@@ -6,8 +6,9 @@ import type {
   ResetPasswordRequest,
   SignInRequest, SignInResponse, SignUpRequest,
   VerifyEmailRequest,
+  TokenValidationResponse,
 } from '../auth.types';
-import { request } from './client';
+import { request, refreshSession } from './client';
 
 // Endpoint and request definitions from the source requirements. Requests run only when called.
 export const auth_api = {
@@ -18,8 +19,16 @@ export const auth_api = {
   // TODO: Confirm resend input before adding parameters.
   resendVerification: () => request<unknown>('/auth/resend-verification', { method: 'POST' }),
   // TODO: Supply refresh credentials once the token strategy is agreed.
-  requestAccessToken: () => request<AccessTokenResponse>('/auth/token/access', { method: 'POST' }),
-  requestRefreshToken: () => request<RefreshTokenResponse>('/auth/token/refresh', { method: 'POST' }),
+  signInViaToken: () =>
+    request<TokenValidationResponse>(
+      '/auth/sign-in-via-token',
+      {
+        method: 'GET',
+        authenticated: true,
+      },
+    ),
+
+  requestRefreshToken: () => refreshSession(),
   signOut: () => request<unknown>('/auth/signout', { method: 'POST', authenticated: true }),
   // Later phase.
   forgotPassword: (body: ForgotPasswordRequest) => request<unknown>('/auth/forgot-password', { method: 'POST', body }),

@@ -22,14 +22,27 @@ export interface SignInResponse {
   user?: UserSummary;
 }
 export interface AccessTokenResponse { access_token: string }
-export interface RefreshTokenResponse extends AccessTokenResponse { refresh_token?: string }
+export interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token: string;
+}
+
+export interface TokenValidationResponse {
+  user_id: string;
+}
+
+export interface TokenValidationResponse {user_id: string;}
 
 /** initializing prevents navigation before session checks; onboarding statuses are proposed. */
 export type AuthStatus = 'initializing' | 'signedOut' | 'needsEmailVerification' | 'needsProfile' | 'authenticated';
+
 export interface AuthState {
   status: AuthStatus;
   access_token: string | null;
   user: UserSummary | null;
+
+  session_activity?: 'refreshing';
+  session_message?: string;
 }
 export interface AuthError {
   status?: number;

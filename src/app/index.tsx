@@ -23,33 +23,86 @@ export default function FrontendScreen() {
   const [signup_email, setSignupEmail] = useState('');
   const logout_lock = useRef(false);
   const signed_in = session.status === 'authenticated';
+  const controls_disabled = busy || session.session_activity === 'refreshing';
 
   async function logout() {
-    if (logout_lock.current) return;
-    logout_lock.current = true; setBusy(true); setMessage('');
+    if (
+      logout_lock.current ||
+      session.session_activity === 'refreshing'
+    ) {
+      return;
+    }
+
+    logout_lock.current = true;
+    setBusy(true);
+    setMessage('');
+
     try {
       await auth_api.signOut();
-      await clearAuthSession(); 
+      await clearAuthSession();
       setMessage('You have signed out.');
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        try{
-          await clearAuthSession();
-          setMessage('Your session expired. Please sign in again.');
-        }catch {
-          setMessage('Unable to remove your saved session. Please retry logout.',);
-        }
-      } else if (error instanceof TokenStorageError){
-        // Ngu du v troi ???? logout server maf ko xoa duoc session ???
-        setMessage('The server signed out, but this device could not remove the saved session. Please retry logout.');
+      if (
+        error instanceof ApiError &&
+        error.code === 'REFRESH_REJECTED'
+      ) {
+        setMessage(
+          'The refresh token was rejected. Clear the saved session and sign in again.',
+        );
+      } else if (
+        error instanceof ApiError &&
+        error.code === 'NO_REFRESH_TOKEN'
+      ) {
+        setMessage(
+          'No refresh token is available. Clear the saved session and sign in again.',
+        );
+      } else if (
+        error instanceof ApiError &&
+        error.code === 'AUTH_RETRY_LIMIT'
+      ) {
+        setMessage(
+          'The server still rejected logout after three renewal attempts.',
+        );
+      } else if (error instanceof TokenStorageError) {
+        setMessage(
+          'Unable to save or remove session credentials. Unlock your device and retry.',
+        );
       } else {
-        setMessage('Unable to confirm logout. Please try again.');
+        setMessage(
+          'Unable to confirm logout. Check your connection and retry.',
+        );
       }
-      } finally 
-      { 
-        logout_lock.current = false; 
-        setBusy(false); 
-      }
+    } finally {
+      logout_lock.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function clearSavedSession() {
+    if (
+      logout_lock.current ||
+      session.session_activity === 'refreshing'
+    ) {
+      return;
+    }
+
+    logout_lock.current = true;
+    setBusy(true);
+    setMessage('');
+
+    try {
+      await clearAuthSession();
+      setMessage(
+        'Local session cleared. Please sign in again. Server logout was not confirmed.',
+      );
+    } catch {
+      setMessage(
+        'Unable to remove saved credentials. Please retry.',
+      );
+    } finally {
+      logout_lock.current = false;
+      setBusy(false);
+    }
   }
 
   return (
@@ -66,14 +119,51 @@ export default function FrontendScreen() {
           ))}
         </View>}
         {!!message && <Text accessibilityLiveRegion="polite" style={{ color: theme.text }}>{message}</Text>}
+        {session.session_activity === 'refreshing' && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8,}}>
+              <ActivityIndicator color={theme.text} />
+              <Text style={{ color: theme.text }}>
+                Renewing session…
+              </Text>
+            </View>
+        )}
+
+        {!!session.session_message && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ color: theme.text }}>
+            {session.session_message}
+          </Text>
+        )}
       </View>
       {signed_in ? <View style={styles.account}>
         <Text style={[styles.title, { color: theme.text }]}>You are signed in</Text>
         {!!session.user?.email && <Text style={{ color: theme.text }}>{session.user.email}</Text>}
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy }} disabled={busy}
-          onPress={() => { void logout(); }} style={[styles.button, { backgroundColor: theme.text, opacity: busy ? 0.6 : 1 }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: controls_disabled, busy }}
+          disabled={controls_disabled}
+          onPress={() => { void logout(); }}
+          style={[styles.button, {
+            backgroundColor: theme.text,
+            opacity: controls_disabled ? 0.6 : 1,
+          }]}>
           {busy && <ActivityIndicator color={theme.background} />}
           <Text style={{ color: theme.background }}>{busy ? 'Logging out…' : 'Log out'}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: controls_disabled }}
+          disabled={controls_disabled}
+          onPress={() => { void clearSavedSession(); }}
+          style={[styles.button, {
+            borderWidth: 1,
+            borderColor: theme.text_secondary,
+            opacity: controls_disabled ? 0.6 : 1,
+          }]}>
+          <Text style={{ color: theme.text }}>
+            Clear local session and sign in
+          </Text>
         </Pressable>
       </View> : mode === 'signin'
         ? <SignIn initial_email={signup_email} onSignedIn={() => { setMessage(''); }} onBusyChange={setBusy} />

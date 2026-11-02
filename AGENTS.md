@@ -40,6 +40,9 @@ Docs: https://docs.expo.dev/eas/index.md
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
 
+
+## CHATGPT CODEX READ HERE: 
+
 ## Naming convention
 
 - Variables and constants: snake_case (for example, access_token, auth_api).
@@ -47,3 +50,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Classes, interfaces, and type aliases: PascalCase (for example, AccessToken, ApiError).
 - React component functions remain PascalCase because JSX requires uppercase component names.
 - Preserve third-party API names, React Native props, backend endpoint paths, and backend payload/response keys. Use snake_case local aliases when needed rather than changing external contracts.
+
+## Note
+
+- Always double check 
